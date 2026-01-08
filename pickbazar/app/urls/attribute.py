@@ -9,7 +9,7 @@ urlpatterns = [
         name="attribute",
     ),
     path(
-        "attributes/<uuid:pk>/",
+        "attributes/<str:slug>/",
         AttributeViewSet.as_view({
             "get": "retrieve",
             "put": "update",

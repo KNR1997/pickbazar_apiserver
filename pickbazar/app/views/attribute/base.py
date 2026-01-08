@@ -1,4 +1,9 @@
-from pickbazar.app.serializers.attribute import AttributeListSerializer
+from django.db import IntegrityError
+from django.utils.text import slugify
+from rest_framework import status
+from rest_framework.response import Response
+
+from pickbazar.app.serializers.attribute import AttributeListSerializer, AttributeSerializer
 from pickbazar.app.views.base import BaseViewSet
 from pickbazar.db.models import Attribute
 
@@ -19,16 +24,69 @@ class AttributeViewSet(BaseViewSet):
         )
 
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        attributes = Attribute.objects.all()
+        serializer = AttributeListSerializer(attributes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        try:
+            if Attribute.objects.filter(
+                    slug=slugify(request.data.get('name'))
+            ).exists():
+                return Response(
+                    {"name": "The attribute with the name already exists"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = AttributeSerializer(data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+                attribute = self.get_queryset().filter(pk=serializer.data["id"]).first()
+                serializer = AttributeListSerializer(attribute)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except IntegrityError as e:
+            if "already exists" in str(e):
+                return Response(
+                    {"slug": "The attribute with the slug already exists"},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        try:
+            if Attribute.objects.filter(
+                    slug=slugify(request.data.get('name'))
+            ).exists():
+                return Response(
+                    {"name": "The attribute with the name already exists"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            attribute = Attribute.objects.get(slug=kwargs['slug'])
+            serializer = AttributeSerializer(
+                attribute,
+                data=request.data,
+                partial=True,
+            )
+
+            if serializer.is_valid():
+                serializer.save()
+                attribute = self.get_queryset().filter(pk=attribute.id).first()
+                serializer = AttributeListSerializer(attribute)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except IntegrityError as e:
+            if "already exists" in str(e):
+                return Response(
+                    {"slug": "The attribute with the slug already exists"},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
