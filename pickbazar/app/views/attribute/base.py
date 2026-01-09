@@ -59,15 +59,16 @@ class AttributeViewSet(BaseViewSet):
 
     def update(self, request, *args, **kwargs):
         try:
-            if Attribute.objects.filter(
-                    slug=slugify(request.data.get('name'))
-            ).exists():
-                return Response(
-                    {"name": "The attribute with the name already exists"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
             attribute = Attribute.objects.get(slug=kwargs['slug'])
+            if attribute.name != request.data.get('name'):
+                if Attribute.objects.filter(
+                        slug=slugify(request.data.get('name'))
+                ).exists():
+                    return Response(
+                        {"name": "The attribute with the name already exists"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
             serializer = AttributeSerializer(
                 attribute,
                 data=request.data,
