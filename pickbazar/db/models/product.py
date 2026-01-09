@@ -42,3 +42,26 @@ class Product(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+class ProductVariation(BaseModel):
+    title = models.CharField(max_length=255)
+    cartesian_product_key = models.CharField(max_length=255, null=True)
+    barcode = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    image = models.JSONField(default=dict, blank=True, null=True)
+    default_quantity = models.IntegerField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    in_stock = models.BooleanField(default=True)
+
+    product = models.ForeignKey(
+        'db.Product', related_name='variations', on_delete=models.CASCADE
+    )
+    attribute = models.ManyToManyField(
+        'db.Attribute', blank=True
+    )
+    value = models.ManyToManyField(
+        'db.AttributeValue', blank=True
+    )
+
+    def __str__(self):
+        return f"{self.product.name} - {self.title}"
