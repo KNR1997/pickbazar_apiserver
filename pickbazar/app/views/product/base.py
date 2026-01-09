@@ -1,8 +1,9 @@
 from django.db import IntegrityError
+from django.utils.text import slugify
 from rest_framework import status
 from rest_framework.response import Response
 
-from pickbazar.app.serializers.product import ProductListSerializer, ProductCreateSerializer, ProductUpdateSerializer
+from pickbazar.app.serializers.product import ProductListSerializer, ProductSerializer
 from pickbazar.app.views.base import BaseViewSet
 from pickbazar.db.models import Product
 
@@ -30,7 +31,15 @@ class ProductViewSet(BaseViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
-            serializer = ProductCreateSerializer(data=request.data)
+            if Product.objects.filter(
+                    slug=slugify(request.data.get('name'))
+            ).exists():
+                return Response(
+                    {"name": "The product with the name already exists"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = ProductSerializer(data=request.data)
 
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
@@ -49,8 +58,16 @@ class ProductViewSet(BaseViewSet):
 
     def update(self, request, *args, **kwargs):
         product = Product.objects.get(slug=kwargs["slug"])
+        if product.name != request.data.get('name'):
+            if Product.objects.filter(
+                    slug=slugify(request.data.get('name'))
+            ).exists():
+                return Response(
+                    {"name": "The product with the name already exists"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        serializer = ProductUpdateSerializer(
+        serializer = ProductSerializer(
             product,
             data=request.data,
             partial=True,

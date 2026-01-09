@@ -7,13 +7,27 @@ from pickbazar.app.serializers.category import CategoryListSerializer
 from pickbazar.app.serializers.manufacturer import ManufacturerListSerializer
 from pickbazar.app.serializers.tag import TagListSerializer
 from pickbazar.app.serializers.type import TypeListSerializer
-from pickbazar.db.models import Product, Manufacturer, Category
+from pickbazar.db.models import Product
 
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
+        read_only_fields = ["slug"]
+
+    def create(self, validated_data):
+        # slugify name to be used on Product create
+        slug = slugify(validated_data.get("name"))
+
+        # create Product
+        validated_data['slug'] = slug
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        slug = slugify(validated_data.get('name'))
+        validated_data['slug'] = slug
+        return super().update(instance, validated_data)
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -26,27 +40,3 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
-
-
-class ProductCreateSerializer(BaseSerializer):
-    class Meta:
-        model = Product
-        fields = '__all__'
-        read_only_fields = ['slug']
-
-    def create(self, validated_data):
-        slug = slugify(validated_data.get('name'))
-        validated_data['slug'] = slug
-        return super().create(validated_data)
-
-
-class ProductUpdateSerializer(BaseSerializer):
-    class Meta:
-        model = Product
-        fields = '__all__'
-        read_only_fields = ['slug']
-
-    def update(self, instance, validated_data):
-        slug = slugify(validated_data.get('name'))
-        validated_data['slug'] = slug
-        return super().update(instance, validated_data)
